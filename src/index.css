@@ -14,7 +14,8 @@
   }
 
   body {
-    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900;
+    @apply text-slate-900;
+    background: linear-gradient(to bottom right, rgb(248 250 252), rgb(239 246 255), rgb(238 242 255));
     font-feature-settings: 'rlig' 1, 'calt' 1;
     min-height: 100vh;
   }
