@@ -13,10 +13,6 @@
     --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
   }
 
-  * {
-    @apply border-border;
-  }
-
   body {
     @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900;
     font-feature-settings: 'rlig' 1, 'calt' 1;
