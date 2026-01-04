@@ -85,7 +85,7 @@ export function IncomeExpenseChart({ incomes, expenses }: IncomeExpenseChartProp
             tickFormatter={(value) => `¥${(value / 10000).toFixed(0)}万`}
           />
           <Tooltip
-            formatter={(value: number) => `¥${value.toLocaleString()}`}
+            formatter={(value) => `¥${Number(value || 0).toLocaleString()}`}
             labelStyle={{ color: '#1f2937' }}
           />
           <Legend />

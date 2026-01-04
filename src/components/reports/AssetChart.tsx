@@ -15,13 +15,6 @@ const assetTypeColors: Record<AssetType, string> = {
   other: '#6b7280', // gray
 };
 
-const assetTypeLabels: Record<AssetType, string> = {
-  cash: '現金・預金',
-  investment: '投資',
-  property: '不動産',
-  other: 'その他',
-};
-
 export function AssetChart({ assets, assetHistory }: AssetChartProps) {
   // 月次データを集計
   const chartData = useMemo(() => {
@@ -92,7 +85,7 @@ export function AssetChart({ assets, assetHistory }: AssetChartProps) {
             tickFormatter={(value) => `¥${(value / 10000).toFixed(0)}万`}
           />
           <Tooltip
-            formatter={(value: number) => `¥${value.toLocaleString()}`}
+            formatter={(value) => `¥${Number(value || 0).toLocaleString()}`}
             labelStyle={{ color: '#1f2937' }}
           />
           <Legend />

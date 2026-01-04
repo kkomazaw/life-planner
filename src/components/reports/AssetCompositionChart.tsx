@@ -84,8 +84,8 @@ export function AssetCompositionChart({ assets, assetHistory }: AssetComposition
             ))}
           </Pie>
           <Tooltip
-            formatter={(value: number) => [
-              `¥${value.toLocaleString()}`,
+            formatter={(value) => [
+              `¥${Number(value || 0).toLocaleString()}`,
               '金額',
             ]}
           />
