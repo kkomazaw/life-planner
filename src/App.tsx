@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { initializeDatabase } from './lib/db';
+import { Layout } from './components/layout/Layout';
+import { DashboardPage } from './pages/DashboardPage';
+import { AssetsPage } from './pages/AssetsPage';
+import { TransactionsPage } from './pages/TransactionsPage';
+import { LifeEventsPage } from './pages/LifeEventsPage';
+import { SimulationPage } from './pages/SimulationPage';
+import { ReportsPage } from './pages/ReportsPage';
+import { SettingsPage } from './pages/SettingsPage';
 
 function App() {
   const [dbInitialized, setDbInitialized] = useState(false);
@@ -15,42 +24,31 @@ function App() {
       });
   }, []);
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-4xl font-bold text-gray-900 mb-4">Life Planner</h1>
-        <p className="text-lg text-gray-600">家族資産管理・ライフプランシミュレーター</p>
-
-        <div className="mt-8 p-6 bg-white rounded-lg shadow">
-          <h2 className="text-2xl font-semibold text-gray-800 mb-4">
-            プロジェクトセットアップ完了
-          </h2>
-
-          <div className="space-y-2">
-            <div className="flex items-center">
-              <span
-                className={`inline-block w-3 h-3 rounded-full mr-2 ${
-                  dbInitialized ? 'bg-green-500' : 'bg-yellow-500'
-                }`}
-              ></span>
-              <span className="text-gray-700">
-                データベース: {dbInitialized ? '初期化完了' : '初期化中...'}
-              </span>
-            </div>
-          </div>
-
-          <div className="mt-6 p-4 bg-blue-50 rounded border border-blue-200">
-            <h3 className="font-semibold text-blue-900 mb-2">次のステップ</h3>
-            <ul className="list-disc list-inside text-blue-800 text-sm space-y-1">
-              <li>Phase 1: MVP開発を開始</li>
-              <li>資産管理機能の実装</li>
-              <li>収支管理機能の実装</li>
-              <li>ダッシュボードの実装</li>
-            </ul>
-          </div>
+  if (!dbInitialized) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+          <p className="mt-4 text-gray-600">データベースを初期化中...</p>
         </div>
       </div>
-    </div>
+    );
+  }
+
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<DashboardPage />} />
+          <Route path="assets" element={<AssetsPage />} />
+          <Route path="transactions" element={<TransactionsPage />} />
+          <Route path="life-events" element={<LifeEventsPage />} />
+          <Route path="simulation" element={<SimulationPage />} />
+          <Route path="reports" element={<ReportsPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
 
