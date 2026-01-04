@@ -1,3 +1,167 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --color-primary: 99 102 241;
+    --color-primary-dark: 79 70 229;
+    --color-accent: 16 185 129;
+    --color-accent-dark: 5 150 105;
+    --gradient-1: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --gradient-2: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+    --gradient-3: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 text-slate-900;
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+    min-height: 100vh;
+  }
+
+  /* モダンなスクロールバー */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-slate-100 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+  }
+}
+
+@layer components {
+  /* グラスモーフィズム効果 */
+  .glass {
+    @apply bg-white/70 backdrop-blur-xl border border-white/20 shadow-xl;
+  }
+
+  .glass-dark {
+    @apply bg-slate-800/70 backdrop-blur-xl border border-white/10 shadow-xl;
+  }
+
+  /* モダンなカードスタイル */
+  .card {
+    @apply bg-white rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-slate-200/50;
+  }
+
+  .card-glass {
+    @apply glass rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300;
+  }
+
+  /* グラデーションボタン */
+  .btn-gradient {
+    @apply bg-gradient-to-r from-indigo-500 to-purple-600 text-white font-semibold rounded-xl px-6 py-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300;
+  }
+
+  .btn-gradient-accent {
+    @apply bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold rounded-xl px-6 py-3 shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300;
+  }
+
+  /* モダンなインプットスタイル */
+  .input-modern {
+    @apply w-full px-4 py-3 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all duration-200 outline-none;
+  }
+
+  /* ホバーアニメーション */
+  .hover-lift {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl;
+  }
+
+  .hover-glow {
+    @apply transition-all duration-300 hover:shadow-lg hover:shadow-indigo-500/50;
+  }
+
+  /* ページヘッダー */
+  .page-header {
+    @apply text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent;
+  }
+
+  /* ステータスバッジ */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-sm font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-emerald-100 text-emerald-700 border border-emerald-200;
+  }
+
+  .badge-warning {
+    @apply badge bg-amber-100 text-amber-700 border border-amber-200;
+  }
+
+  .badge-info {
+    @apply badge bg-blue-100 text-blue-700 border border-blue-200;
+  }
+
+  /* アニメーション */
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+
+  .animate-slide-up {
+    animation: slideUp 0.5s ease-out;
+  }
+
+  .animate-scale-in {
+    animation: scaleIn 0.3s ease-out;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-shimmer {
+  animation: shimmer 3s infinite;
+}
