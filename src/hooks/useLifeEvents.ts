@@ -15,7 +15,8 @@ export function useLifeEvents() {
     if (lifeEvents) {
       store.setLifeEvents(lifeEvents);
     }
-  }, [lifeEvents, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lifeEvents]);
 
   // ライフイベントを作成
   const createLifeEvent = async (data: {

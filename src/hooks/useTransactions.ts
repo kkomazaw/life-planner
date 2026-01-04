@@ -17,19 +17,22 @@ export function useTransactions() {
     if (incomes) {
       store.setIncomes(incomes);
     }
-  }, [incomes, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomes]);
 
   useEffect(() => {
     if (expenses) {
       store.setExpenses(expenses);
     }
-  }, [expenses, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses]);
 
   useEffect(() => {
     if (expenseCategories) {
       store.setExpenseCategories(expenseCategories);
     }
-  }, [expenseCategories, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenseCategories]);
 
   // 収入を作成
   const createIncome = async (data: { date: Date; source: string; amount: number; memo?: string }) => {

@@ -16,13 +16,15 @@ export function useAssets() {
     if (assets) {
       store.setAssets(assets);
     }
-  }, [assets, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assets]);
 
   useEffect(() => {
     if (assetHistory) {
       store.setAssetHistory(assetHistory);
     }
-  }, [assetHistory, store]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [assetHistory]);
 
   // 資産を作成
   const createAsset = async (data: {
