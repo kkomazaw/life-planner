@@ -11,6 +11,7 @@
     "test": "vitest"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.1.18",
     "autoprefixer": "^10.4.23",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
