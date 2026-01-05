@@ -18,16 +18,30 @@ const assetTypeLabels: Record<AssetType, string> = {
   other: 'その他',
 };
 
-export function AssetChart() {
+interface AssetChartProps {
+  selectedDate: string | null;
+}
+
+export function AssetChart({ selectedDate }: AssetChartProps) {
   const { assets, assetHistory } = useAssets();
 
   // 月ごとの資産推移データを作成
   const chartData = useMemo(() => {
     if (assetHistory.length === 0) return [];
 
+    // フィルター適用: 特定の評価日が選択されている場合
+    let filteredHistory = assetHistory;
+    if (selectedDate) {
+      filteredHistory = assetHistory.filter(
+        (h) => h.date.toISOString().slice(0, 10) <= selectedDate
+      );
+    }
+
+    if (filteredHistory.length === 0) return [];
+
     // 全ての日付を取得してソート
     const allDates = Array.from(
-      new Set(assetHistory.map((h) => h.date.toISOString().slice(0, 7)))
+      new Set(filteredHistory.map((h) => h.date.toISOString().slice(0, 7)))
     ).sort();
 
     // 各月のデータを作成
@@ -51,7 +65,8 @@ export function AssetChart() {
       };
 
       assets.forEach((asset) => {
-        const history = assetHistory
+        // 該当月の履歴を取得（選択された評価日以前のデータのみ）
+        const history = filteredHistory
           .filter((h) => h.assetId === asset.id)
           .filter((h) => h.date.toISOString().slice(0, 7) === monthStr)
           .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -69,7 +84,7 @@ export function AssetChart() {
 
       return dataPoint;
     });
-  }, [assets, assetHistory]);
+  }, [assets, assetHistory, selectedDate]);
 
   // どの資産タイプが存在するかをチェック
   const hasAssetType = useMemo(() => {
@@ -100,7 +115,14 @@ export function AssetChart() {
 
   return (
     <div className="card p-6">
-      <h2 className="text-base font-semibold text-slate-900 mb-4">資産推移</h2>
+      <h2 className="text-base font-semibold text-slate-900 mb-4">
+        資産推移
+        {selectedDate && (
+          <span className="text-sm font-normal text-slate-600 ml-2">
+            ({new Date(selectedDate).toLocaleDateString('ja-JP')}時点)
+          </span>
+        )}
+      </h2>
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={chartData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />

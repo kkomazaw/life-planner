@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAssets } from '@/hooks/useAssets';
 import { formatCurrency } from '@/lib/utils';
-import type { Asset, AssetType } from '@/types/asset';
+import type { Asset, AssetType, AssetHistory } from '@/types/asset';
 
 const assetTypeOptions: { value: AssetType; label: string }[] = [
   { value: 'cash', label: '現金・預金' },
@@ -11,57 +11,70 @@ const assetTypeOptions: { value: AssetType; label: string }[] = [
 ];
 
 export function AssetTable() {
-  const { assets, assetHistory, createAsset, updateAsset, deleteAsset, createAssetHistory } = useAssets();
-  const [editingCell, setEditingCell] = useState<{ assetId: string; field: string } | null>(null);
+  const { assets, assetHistory, createAsset, updateAsset, deleteAsset, createAssetHistory, updateAssetHistory, deleteAssetHistory } = useAssets();
+  const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
   const [editValue, setEditValue] = useState<string>('');
   const [isAddingNew, setIsAddingNew] = useState(false);
   const [newAsset, setNewAsset] = useState({
     name: '',
     type: 'cash' as AssetType,
     value: '',
+    date: new Date().toISOString().slice(0, 10),
   });
 
-  // 各資産の最新評価額を取得
-  const getLatestValue = (assetId: string): number => {
+  // 各資産の最新評価履歴を取得
+  const getLatestHistory = (assetId: string): AssetHistory | null => {
     const history = assetHistory
       .filter((h) => h.assetId === assetId)
       .sort((a, b) => b.date.getTime() - a.date.getTime());
-    return history[0]?.value || 0;
+    return history[0] || null;
   };
 
   // セルの編集開始
-  const startEditing = (assetId: string, field: string, currentValue: string) => {
-    setEditingCell({ assetId, field });
+  const startEditing = (id: string, field: string, currentValue: string) => {
+    setEditingCell({ id, field });
     setEditValue(currentValue);
   };
 
-  // セルの編集完了
-  const finishEditing = async () => {
+  // セルの編集完了（資産情報）
+  const finishEditingAsset = async (assetId: string) => {
     if (!editingCell) return;
 
-    const { assetId, field } = editingCell;
-    const asset = assets.find((a) => a.id === assetId);
-    if (!asset) return;
+    const { field } = editingCell;
 
     try {
       if (field === 'name') {
         await updateAsset(assetId, { name: editValue });
       } else if (field === 'type') {
         await updateAsset(assetId, { type: editValue as AssetType });
-      } else if (field === 'value') {
-        const value = parseFloat(editValue.replace(/,/g, ''));
-        if (!isNaN(value)) {
-          const now = new Date();
-          const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-          await createAssetHistory({
-            assetId,
-            date: lastDayOfMonth,
-            value,
-          });
-        }
       }
     } catch (error) {
       console.error('Failed to update asset:', error);
+    }
+
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  // セルの編集完了（評価履歴）
+  const finishEditingHistory = async (historyId: string) => {
+    if (!editingCell) return;
+
+    const { field } = editingCell;
+    const history = assetHistory.find((h) => h.id === historyId);
+    if (!history) return;
+
+    try {
+      if (field === 'date') {
+        await updateAssetHistory(historyId, { date: new Date(editValue) });
+      } else if (field === 'value') {
+        const value = parseFloat(editValue.replace(/,/g, ''));
+        if (!isNaN(value)) {
+          await updateAssetHistory(historyId, { value });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update asset history:', error);
     }
 
     setEditingCell(null);
@@ -81,16 +94,14 @@ export function AssetTable() {
       });
 
       if (value > 0) {
-        const now = new Date();
-        const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
         await createAssetHistory({
           assetId: asset.id,
-          date: lastDayOfMonth,
+          date: new Date(newAsset.date),
           value,
         });
       }
 
-      setNewAsset({ name: '', type: 'cash', value: '' });
+      setNewAsset({ name: '', type: 'cash', value: '', date: new Date().toISOString().slice(0, 10) });
       setIsAddingNew(false);
     } catch (error) {
       console.error('Failed to create asset:', error);
@@ -108,6 +119,17 @@ export function AssetTable() {
     }
   };
 
+  // 評価履歴の削除
+  const handleDeleteHistory = async (historyId: string) => {
+    if (window.confirm('この評価履歴を削除してもよろしいですか？')) {
+      try {
+        await deleteAssetHistory(historyId);
+      } catch (error) {
+        console.error('Failed to delete asset history:', error);
+      }
+    }
+  };
+
   return (
     <div className="card overflow-hidden">
       <div className="overflow-x-auto">
@@ -120,6 +142,9 @@ export function AssetTable() {
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
                 種別
               </th>
+              <th className="px-4 py-3 text-center text-xs font-medium text-slate-600 uppercase tracking-wider">
+                評価日
+              </th>
               <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
                 評価額
               </th>
@@ -130,19 +155,19 @@ export function AssetTable() {
           </thead>
           <tbody className="bg-white divide-y divide-slate-100">
             {assets.map((asset) => {
-              const latestValue = getLatestValue(asset.id);
+              const latestHistory = getLatestHistory(asset.id);
               const typeOption = assetTypeOptions.find((opt) => opt.value === asset.type);
 
               return (
                 <tr key={asset.id} className="hover:bg-slate-50 transition-colors">
                   <td className="px-4 py-3">
-                    {editingCell?.assetId === asset.id && editingCell?.field === 'name' ? (
+                    {editingCell?.id === asset.id && editingCell?.field === 'name' ? (
                       <input
                         type="text"
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={finishEditing}
-                        onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
+                        onBlur={() => finishEditingAsset(asset.id)}
+                        onKeyDown={(e) => e.key === 'Enter' && finishEditingAsset(asset.id)}
                         autoFocus
                         className="input-modern py-1 text-sm"
                       />
@@ -156,11 +181,11 @@ export function AssetTable() {
                     )}
                   </td>
                   <td className="px-4 py-3">
-                    {editingCell?.assetId === asset.id && editingCell?.field === 'type' ? (
+                    {editingCell?.id === asset.id && editingCell?.field === 'type' ? (
                       <select
                         value={editValue}
                         onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={finishEditing}
+                        onBlur={() => finishEditingAsset(asset.id)}
                         autoFocus
                         className="input-modern py-1 text-sm"
                       >
@@ -179,24 +204,52 @@ export function AssetTable() {
                       </div>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {editingCell?.assetId === asset.id && editingCell?.field === 'value' ? (
-                      <input
-                        type="text"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        onBlur={finishEditing}
-                        onKeyDown={(e) => e.key === 'Enter' && finishEditing()}
-                        autoFocus
-                        className="input-modern py-1 text-sm text-right"
-                      />
+                  <td className="px-4 py-3 text-center">
+                    {latestHistory ? (
+                      editingCell?.id === latestHistory.id && editingCell?.field === 'date' ? (
+                        <input
+                          type="date"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => finishEditingHistory(latestHistory.id)}
+                          onKeyDown={(e) => e.key === 'Enter' && finishEditingHistory(latestHistory.id)}
+                          autoFocus
+                          className="input-modern py-1 text-sm"
+                        />
+                      ) : (
+                        <div
+                          onClick={() => startEditing(latestHistory.id, 'date', latestHistory.date.toISOString().slice(0, 10))}
+                          className="cursor-pointer text-sm text-slate-600 hover:text-blue-600 py-1"
+                        >
+                          {latestHistory.date.toLocaleDateString('ja-JP')}
+                        </div>
+                      )
                     ) : (
-                      <div
-                        onClick={() => startEditing(asset.id, 'value', latestValue.toString())}
-                        className="cursor-pointer text-sm font-semibold text-slate-900 hover:text-blue-600 py-1"
-                      >
-                        {formatCurrency(latestValue)}
-                      </div>
+                      <span className="text-sm text-slate-400">-</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {latestHistory ? (
+                      editingCell?.id === latestHistory.id && editingCell?.field === 'value' ? (
+                        <input
+                          type="text"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={() => finishEditingHistory(latestHistory.id)}
+                          onKeyDown={(e) => e.key === 'Enter' && finishEditingHistory(latestHistory.id)}
+                          autoFocus
+                          className="input-modern py-1 text-sm text-right"
+                        />
+                      ) : (
+                        <div
+                          onClick={() => startEditing(latestHistory.id, 'value', latestHistory.value.toString())}
+                          className="cursor-pointer text-sm font-semibold text-slate-900 hover:text-blue-600 py-1"
+                        >
+                          {formatCurrency(latestHistory.value)}
+                        </div>
+                      )
+                    ) : (
+                      <span className="text-sm text-slate-400">-</span>
                     )}
                   </td>
                   <td className="px-4 py-3 text-center">
@@ -241,6 +294,14 @@ export function AssetTable() {
                 </td>
                 <td className="px-4 py-3">
                   <input
+                    type="date"
+                    value={newAsset.date}
+                    onChange={(e) => setNewAsset({ ...newAsset, date: e.target.value })}
+                    className="input-modern py-1 text-sm"
+                  />
+                </td>
+                <td className="px-4 py-3">
+                  <input
                     type="text"
                     value={newAsset.value}
                     onChange={(e) => setNewAsset({ ...newAsset, value: e.target.value })}
@@ -259,7 +320,7 @@ export function AssetTable() {
                   <button
                     onClick={() => {
                       setIsAddingNew(false);
-                      setNewAsset({ name: '', type: 'cash', value: '' });
+                      setNewAsset({ name: '', type: 'cash', value: '', date: new Date().toISOString().slice(0, 10) });
                     }}
                     className="text-slate-400 hover:text-slate-600 text-sm"
                   >
@@ -269,7 +330,7 @@ export function AssetTable() {
               </tr>
             ) : (
               <tr className="bg-slate-50">
-                <td colSpan={4} className="px-4 py-3">
+                <td colSpan={5} className="px-4 py-3">
                   <button
                     onClick={() => setIsAddingNew(true)}
                     className="text-sm text-blue-600 hover:text-blue-700 font-medium"
@@ -288,7 +349,12 @@ export function AssetTable() {
         <div className="flex justify-between items-center">
           <span className="text-sm font-semibold text-slate-700">総資産額</span>
           <span className="text-lg font-bold text-slate-900">
-            {formatCurrency(assets.reduce((total, asset) => total + getLatestValue(asset.id), 0))}
+            {formatCurrency(
+              assets.reduce((total, asset) => {
+                const history = getLatestHistory(asset.id);
+                return total + (history?.value || 0);
+              }, 0)
+            )}
           </span>
         </div>
       </div>

@@ -18,15 +18,27 @@ const assetTypeLabels: Record<AssetType, string> = {
   other: 'その他',
 };
 
-export function PortfolioChart() {
+interface PortfolioChartProps {
+  selectedDate: string | null;
+}
+
+export function PortfolioChart({ selectedDate }: PortfolioChartProps) {
   const { assets, assetHistory } = useAssets();
 
-  // 各資産の最新評価額を取得
-  const getLatestValue = (assetId: string): number => {
-    const history = assetHistory
-      .filter((h) => h.assetId === assetId)
-      .sort((a, b) => b.date.getTime() - a.date.getTime());
-    return history[0]?.value || 0;
+  // 各資産の評価額を取得（評価日フィルター適用）
+  const getValueAtDate = (assetId: string): number => {
+    let history = assetHistory.filter((h) => h.assetId === assetId);
+
+    // 評価日が選択されている場合、その日以前のデータのみに絞る
+    if (selectedDate) {
+      history = history.filter(
+        (h) => h.date.toISOString().slice(0, 10) <= selectedDate
+      );
+    }
+
+    // 最新の履歴を取得
+    const sorted = history.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return sorted[0]?.value || 0;
   };
 
   // 資産タイプごとの構成データを作成
@@ -39,7 +51,7 @@ export function PortfolioChart() {
     };
 
     assets.forEach((asset) => {
-      const value = getLatestValue(asset.id);
+      const value = getValueAtDate(asset.id);
       byType[asset.type] += value;
     });
 
@@ -50,7 +62,7 @@ export function PortfolioChart() {
         value,
         type,
       }));
-  }, [assets, assetHistory]);
+  }, [assets, assetHistory, selectedDate]);
 
   const totalAssets = useMemo(
     () => chartData.reduce((sum, item) => sum + item.value, 0),
@@ -70,7 +82,14 @@ export function PortfolioChart() {
 
   return (
     <div className="card p-6">
-      <h2 className="text-base font-semibold text-slate-900 mb-4">資産構成</h2>
+      <h2 className="text-base font-semibold text-slate-900 mb-4">
+        資産構成
+        {selectedDate && (
+          <span className="text-sm font-normal text-slate-600 ml-2">
+            ({new Date(selectedDate).toLocaleDateString('ja-JP')}時点)
+          </span>
+        )}
+      </h2>
       <ResponsiveContainer width="100%" height={300}>
         <PieChart>
           <Pie
