@@ -1,9 +1,19 @@
 export type ExpenseCategoryType = 'fixed' | 'variable' | 'other';
+export type IncomeCategoryType = 'salary' | 'business' | 'investment' | 'other';
 
 export interface ExpenseCategory {
   id: string;
   name: string;
   type: ExpenseCategoryType;
+  order: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface IncomeCategory {
+  id: string;
+  name: string;
+  type: IncomeCategoryType;
   order: number;
   createdAt: Date;
   updatedAt: Date;
@@ -26,11 +36,15 @@ export interface ExpenseWithCategory extends Expense {
 export interface Income {
   id: string;
   date: Date; // 年月
-  source: string; // 収入源
+  categoryId: string;
   amount: number;
   memo?: string;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IncomeWithCategory extends Income {
+  category: IncomeCategory;
 }
 
 export interface MonthlySummary {

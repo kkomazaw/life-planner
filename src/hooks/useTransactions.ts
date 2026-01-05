@@ -3,7 +3,14 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/lib/db';
 import { useTransactionStore } from '@/store/transactionStore';
-import type { Income, Expense, ExpenseCategory, ExpenseCategoryType } from '@/types/transaction';
+import type {
+  Income,
+  Expense,
+  IncomeCategory,
+  ExpenseCategory,
+  IncomeCategoryType,
+  ExpenseCategoryType,
+} from '@/types/transaction';
 
 export function useTransactions() {
   const store = useTransactionStore();
@@ -11,6 +18,7 @@ export function useTransactions() {
   // データベースから取得してストアに同期
   const incomes = useLiveQuery(() => db.incomes.toArray());
   const expenses = useLiveQuery(() => db.expenses.toArray());
+  const incomeCategories = useLiveQuery(() => db.incomeCategories.orderBy('order').toArray());
   const expenseCategories = useLiveQuery(() => db.expenseCategories.orderBy('order').toArray());
 
   useEffect(() => {
@@ -28,6 +36,13 @@ export function useTransactions() {
   }, [expenses]);
 
   useEffect(() => {
+    if (incomeCategories) {
+      store.setIncomeCategories(incomeCategories);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomeCategories]);
+
+  useEffect(() => {
     if (expenseCategories) {
       store.setExpenseCategories(expenseCategories);
     }
@@ -35,7 +50,7 @@ export function useTransactions() {
   }, [expenseCategories]);
 
   // 収入を作成
-  const createIncome = async (data: { date: Date; source: string; amount: number; memo?: string }) => {
+  const createIncome = async (data: { date: Date; categoryId: string; amount: number; memo?: string }) => {
     const now = new Date();
     const income: Income = {
       id: uuidv4(),
@@ -93,6 +108,40 @@ export function useTransactions() {
     await db.expenses.delete(id);
   };
 
+  // 収入カテゴリを作成
+  const createIncomeCategory = async (data: {
+    name: string;
+    type: IncomeCategoryType;
+    order: number;
+  }) => {
+    const now = new Date();
+    const category: IncomeCategory = {
+      id: uuidv4(),
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db.incomeCategories.add(category);
+    return category;
+  };
+
+  // 収入カテゴリを更新
+  const updateIncomeCategory = async (
+    id: string,
+    updates: Partial<Omit<IncomeCategory, 'id' | 'createdAt'>>
+  ) => {
+    await db.incomeCategories.update(id, {
+      ...updates,
+      updatedAt: new Date(),
+    });
+  };
+
+  // 収入カテゴリを削除
+  const deleteIncomeCategory = async (id: string) => {
+    await db.incomeCategories.delete(id);
+  };
+
   // 支出カテゴリを作成
   const createExpenseCategory = async (data: {
     name: string;
@@ -130,6 +179,7 @@ export function useTransactions() {
   return {
     incomes: store.incomes,
     expenses: store.expenses,
+    incomeCategories: store.incomeCategories,
     expenseCategories: store.expenseCategories,
     createIncome,
     updateIncome,
@@ -137,6 +187,9 @@ export function useTransactions() {
     createExpense,
     updateExpense,
     deleteExpense,
+    createIncomeCategory,
+    updateIncomeCategory,
+    deleteIncomeCategory,
     createExpenseCategory,
     updateExpenseCategory,
     deleteExpenseCategory,

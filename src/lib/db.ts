@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie';
 import type { Asset, AssetHistory } from '@/types/asset';
-import type { Income, Expense, ExpenseCategory } from '@/types/transaction';
+import type { Income, Expense, ExpenseCategory, IncomeCategory } from '@/types/transaction';
 import type { LifeEvent } from '@/types/lifeEvent';
 import type { SimulationSettings } from '@/types/simulation';
 
@@ -10,6 +10,7 @@ class LifePlannerDatabase extends Dexie {
   assetHistory!: EntityTable<AssetHistory, 'id'>;
   incomes!: EntityTable<Income, 'id'>;
   expenses!: EntityTable<Expense, 'id'>;
+  incomeCategories!: EntityTable<IncomeCategory, 'id'>;
   expenseCategories!: EntityTable<ExpenseCategory, 'id'>;
   lifeEvents!: EntityTable<LifeEvent, 'id'>;
   simulationSettings!: EntityTable<SimulationSettings, 'id'>;
@@ -17,11 +18,24 @@ class LifePlannerDatabase extends Dexie {
   constructor() {
     super('LifePlannerDB');
 
+    // Version 1: 初期スキーマ
     this.version(1).stores({
       assets: 'id, type, acquisitionDate, createdAt',
       assetHistory: 'id, assetId, date, createdAt',
       incomes: 'id, date, source, createdAt',
       expenses: 'id, date, categoryId, createdAt',
+      expenseCategories: 'id, type, order',
+      lifeEvents: 'id, date, category, createdAt',
+      simulationSettings: 'id, name, createdAt',
+    });
+
+    // Version 2: 収入カテゴリの追加
+    this.version(2).stores({
+      assets: 'id, type, acquisitionDate, createdAt',
+      assetHistory: 'id, assetId, date, createdAt',
+      incomes: 'id, date, categoryId, createdAt',
+      expenses: 'id, date, categoryId, createdAt',
+      incomeCategories: 'id, type, order',
       expenseCategories: 'id, type, order',
       lifeEvents: 'id, date, category, createdAt',
       simulationSettings: 'id, name, createdAt',
@@ -32,8 +46,35 @@ class LifePlannerDatabase extends Dexie {
 // データベースインスタンスをエクスポート
 export const db = new LifePlannerDatabase();
 
+// デフォルトの収入カテゴリを初期化
+export async function initializeDefaultIncomeCategories() {
+  const count = await db.incomeCategories.count();
+
+  if (count === 0) {
+    const defaultCategories: Omit<IncomeCategory, 'id' | 'createdAt' | 'updatedAt'>[] = [
+      { name: '給与・賃金', type: 'salary', order: 1 },
+      { name: '賞与', type: 'salary', order: 2 },
+      { name: '事業収入', type: 'business', order: 3 },
+      { name: '配当金', type: 'investment', order: 4 },
+      { name: '利息', type: 'investment', order: 5 },
+      { name: '不動産収入', type: 'investment', order: 6 },
+      { name: 'その他', type: 'other', order: 7 },
+    ];
+
+    const now = new Date();
+    const categoriesToAdd = defaultCategories.map((cat, index) => ({
+      ...cat,
+      id: `default-income-category-${index + 1}`,
+      createdAt: now,
+      updatedAt: now,
+    }));
+
+    await db.incomeCategories.bulkAdd(categoriesToAdd);
+  }
+}
+
 // デフォルトの支出カテゴリを初期化
-export async function initializeDefaultCategories() {
+export async function initializeDefaultExpenseCategories() {
   const count = await db.expenseCategories.count();
 
   if (count === 0) {
@@ -59,7 +100,7 @@ export async function initializeDefaultCategories() {
     const now = new Date();
     const categoriesToAdd = defaultCategories.map((cat, index) => ({
       ...cat,
-      id: `default-category-${index + 1}`,
+      id: `default-expense-category-${index + 1}`,
       createdAt: now,
       updatedAt: now,
     }));
@@ -70,5 +111,6 @@ export async function initializeDefaultCategories() {
 
 // データベース初期化
 export async function initializeDatabase() {
-  await initializeDefaultCategories();
+  await initializeDefaultIncomeCategories();
+  await initializeDefaultExpenseCategories();
 }
