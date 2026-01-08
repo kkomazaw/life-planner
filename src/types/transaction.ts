@@ -39,6 +39,7 @@ export interface Income {
   categoryId: string;
   amount: number;
   memo?: string;
+  linkedMemberId?: string; // 紐付けられた家族メンバーID（退職後は収入が停止）
   createdAt: Date;
   updatedAt: Date;
 }

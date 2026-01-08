@@ -22,7 +22,14 @@ export interface ExpectedReturns {
   cash: number; // 年率（小数）例: 0.001 = 0.1%
   investment: number;
   property: number;
+  insurance: number;
   other: number;
+}
+
+export interface WithdrawalSettings {
+  enabled: boolean; // 取り崩しを有効にするか
+  startDate: Date; // 取り崩し開始日
+  monthlyAmount: number; // 月額取り崩し金額
 }
 
 export interface SimulationSettings {
@@ -32,6 +39,7 @@ export interface SimulationSettings {
   inflationRate: number; // 年率（小数）
   futureIncome: FutureIncome[];
   futureExpense: FutureExpense[];
+  withdrawal?: WithdrawalSettings; // 投資資産取り崩し設定
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,12 +51,14 @@ export interface MonthlySimulationData {
     cash: number;
     investment: number;
     property: number;
+    insurance: number;
     other: number;
   };
   income: number; // その月の収入
   expense: number; // その月の支出
   lifeEventCost: number; // その月のライフイベント費用
   netCashFlow: number; // 純キャッシュフロー
+  withdrawalAmount: number; // 投資資産からの取り崩し金額
 }
 
 export interface SimulationResult {

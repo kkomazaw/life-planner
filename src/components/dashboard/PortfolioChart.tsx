@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback, memo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 import { useAssets } from '@/hooks/useAssets';
 import { formatCurrency } from '@/lib/utils';
@@ -8,6 +8,7 @@ const assetTypeColors: Record<AssetType, string> = {
   cash: '#3b82f6',
   investment: '#10b981',
   property: '#8b5cf6',
+  insurance: '#f59e0b',
   other: '#64748b',
 };
 
@@ -15,6 +16,7 @@ const assetTypeLabels: Record<AssetType, string> = {
   cash: '現金・預金',
   investment: '投資',
   property: '不動産',
+  insurance: '保険',
   other: 'その他',
 };
 
@@ -22,11 +24,18 @@ interface PortfolioChartProps {
   selectedDate: string | null;
 }
 
-export function PortfolioChart({ selectedDate }: PortfolioChartProps) {
+export const PortfolioChart = memo(function PortfolioChart({ selectedDate }: PortfolioChartProps) {
   const { assets, assetHistory } = useAssets();
 
   // 各資産の評価額を取得（評価日フィルター適用）
-  const getValueAtDate = (assetId: string): number => {
+  const getValueAtDate = useCallback((assetId: string): number => {
+    const asset = assets.find((a) => a.id === assetId);
+
+    // 保険の場合は保険金額を返す
+    if (asset?.type === 'insurance' && asset.coverageAmount) {
+      return asset.coverageAmount;
+    }
+
     let history = assetHistory.filter((h) => h.assetId === assetId);
 
     // 評価日が選択されている場合、その日以前のデータのみに絞る
@@ -39,7 +48,7 @@ export function PortfolioChart({ selectedDate }: PortfolioChartProps) {
     // 最新の履歴を取得
     const sorted = history.sort((a, b) => b.date.getTime() - a.date.getTime());
     return sorted[0]?.value || 0;
-  };
+  }, [assets, assetHistory, selectedDate]);
 
   // 資産タイプごとの構成データを作成
   const chartData = useMemo(() => {
@@ -47,6 +56,7 @@ export function PortfolioChart({ selectedDate }: PortfolioChartProps) {
       cash: 0,
       investment: 0,
       property: 0,
+      insurance: 0,
       other: 0,
     };
 
@@ -146,4 +156,4 @@ export function PortfolioChart({ selectedDate }: PortfolioChartProps) {
       </div>
     </div>
   );
-}
+});

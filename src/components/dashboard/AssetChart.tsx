@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, memo } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAssets } from '@/hooks/useAssets';
 import { formatCurrency } from '@/lib/utils';
@@ -8,6 +8,7 @@ const assetTypeColors: Record<AssetType, string> = {
   cash: '#3b82f6',
   investment: '#10b981',
   property: '#8b5cf6',
+  insurance: '#f59e0b',
   other: '#64748b',
 };
 
@@ -15,6 +16,7 @@ const assetTypeLabels: Record<AssetType, string> = {
   cash: '現金・預金',
   investment: '投資',
   property: '不動産',
+  insurance: '保険',
   other: 'その他',
 };
 
@@ -22,7 +24,7 @@ interface AssetChartProps {
   selectedDate: string | null;
 }
 
-export function AssetChart({ selectedDate }: AssetChartProps) {
+export const AssetChart = memo(function AssetChart({ selectedDate }: AssetChartProps) {
   const { assets, assetHistory } = useAssets();
 
   // 月ごとの資産推移データを作成
@@ -61,6 +63,7 @@ export function AssetChart({ selectedDate }: AssetChartProps) {
         cash: 0,
         investment: 0,
         property: 0,
+        insurance: 0,
         other: 0,
       };
 
@@ -80,6 +83,7 @@ export function AssetChart({ selectedDate }: AssetChartProps) {
       dataPoint.cash = byType.cash;
       dataPoint.investment = byType.investment;
       dataPoint.property = byType.property;
+      dataPoint.insurance = byType.insurance;
       dataPoint.other = byType.other;
 
       return dataPoint;
@@ -92,6 +96,7 @@ export function AssetChart({ selectedDate }: AssetChartProps) {
       cash: false,
       investment: false,
       property: false,
+      insurance: false,
       other: false,
     };
 
@@ -202,4 +207,4 @@ export function AssetChart({ selectedDate }: AssetChartProps) {
       </ResponsiveContainer>
     </div>
   );
-}
+});

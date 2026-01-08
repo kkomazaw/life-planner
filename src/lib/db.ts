@@ -3,6 +3,7 @@ import type { Asset, AssetHistory } from '@/types/asset';
 import type { Income, Expense, ExpenseCategory, IncomeCategory } from '@/types/transaction';
 import type { LifeEvent } from '@/types/lifeEvent';
 import type { SimulationSettings } from '@/types/simulation';
+import type { HouseholdMember } from '@/types/household';
 
 // データベースクラスの定義
 class LifePlannerDatabase extends Dexie {
@@ -14,6 +15,7 @@ class LifePlannerDatabase extends Dexie {
   expenseCategories!: EntityTable<ExpenseCategory, 'id'>;
   lifeEvents!: EntityTable<LifeEvent, 'id'>;
   simulationSettings!: EntityTable<SimulationSettings, 'id'>;
+  householdMembers!: EntityTable<HouseholdMember, 'id'>;
 
   constructor() {
     super('LifePlannerDB');
@@ -39,6 +41,45 @@ class LifePlannerDatabase extends Dexie {
       expenseCategories: 'id, type, order',
       lifeEvents: 'id, date, category, createdAt',
       simulationSettings: 'id, name, createdAt',
+    });
+
+    // Version 3: 家族構成メンバーの追加
+    this.version(3).stores({
+      assets: 'id, type, acquisitionDate, createdAt',
+      assetHistory: 'id, assetId, date, createdAt',
+      incomes: 'id, date, categoryId, createdAt',
+      expenses: 'id, date, categoryId, createdAt',
+      incomeCategories: 'id, type, order',
+      expenseCategories: 'id, type, order',
+      lifeEvents: 'id, date, category, createdAt',
+      simulationSettings: 'id, name, createdAt',
+      householdMembers: 'id, relation, birthDate, createdAt',
+    });
+
+    // Version 4: 収入に家族メンバーとの紐付けを追加
+    this.version(4).stores({
+      assets: 'id, type, acquisitionDate, createdAt',
+      assetHistory: 'id, assetId, date, createdAt',
+      incomes: 'id, date, categoryId, linkedMemberId, createdAt',
+      expenses: 'id, date, categoryId, createdAt',
+      incomeCategories: 'id, type, order',
+      expenseCategories: 'id, type, order',
+      lifeEvents: 'id, date, category, createdAt',
+      simulationSettings: 'id, name, createdAt',
+      householdMembers: 'id, relation, birthDate, createdAt',
+    });
+
+    // Version 5: 資産に保険固有のフィールドを追加（家族メンバー紐付けのインデックス）
+    this.version(5).stores({
+      assets: 'id, type, acquisitionDate, linkedMemberId, createdAt',
+      assetHistory: 'id, assetId, date, createdAt',
+      incomes: 'id, date, categoryId, linkedMemberId, createdAt',
+      expenses: 'id, date, categoryId, createdAt',
+      incomeCategories: 'id, type, order',
+      expenseCategories: 'id, type, order',
+      lifeEvents: 'id, date, category, createdAt',
+      simulationSettings: 'id, name, createdAt',
+      householdMembers: 'id, relation, birthDate, createdAt',
     });
   }
 }

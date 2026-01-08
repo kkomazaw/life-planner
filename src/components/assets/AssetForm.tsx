@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAssets } from '@/hooks/useAssets';
+import { useHousehold } from '@/hooks/useHousehold';
 import { formatYearMonth } from '@/lib/utils';
 import type { Asset, AssetType } from '@/types/asset';
 
@@ -7,6 +8,7 @@ const assetTypeOptions: { value: AssetType; label: string }[] = [
   { value: 'cash', label: '現金・預金' },
   { value: 'investment', label: '投資' },
   { value: 'property', label: '不動産' },
+  { value: 'insurance', label: '保険' },
   { value: 'other', label: 'その他' },
 ];
 
@@ -18,10 +20,19 @@ interface AssetFormProps {
 
 export function AssetForm({ asset, onClose, onSuccess }: AssetFormProps) {
   const { createAsset, updateAsset } = useAssets();
+  const { members: householdMembers } = useHousehold();
   const [name, setName] = useState('');
   const [type, setType] = useState<AssetType>('cash');
   const [acquisitionDate, setAcquisitionDate] = useState('');
   const [memo, setMemo] = useState('');
+
+  // 保険固有のフィールド
+  const [monthlyPremium, setMonthlyPremium] = useState('');
+  const [paymentEndAge, setPaymentEndAge] = useState('');
+  const [coverageAmount, setCoverageAmount] = useState('');
+  const [coverageType, setCoverageType] = useState('');
+  const [linkedMemberId, setLinkedMemberId] = useState('');
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -33,6 +44,15 @@ export function AssetForm({ asset, onClose, onSuccess }: AssetFormProps) {
       setType(asset.type);
       setAcquisitionDate(formatYearMonth(asset.acquisitionDate));
       setMemo(asset.memo || '');
+
+      // 保険固有のフィールド
+      if (asset.type === 'insurance') {
+        setMonthlyPremium(asset.monthlyPremium?.toString() || '');
+        setPaymentEndAge(asset.paymentEndAge?.toString() || '');
+        setCoverageAmount(asset.coverageAmount?.toString() || '');
+        setCoverageType(asset.coverageType || '');
+        setLinkedMemberId(asset.linkedMemberId || '');
+      }
     } else {
       // デフォルトは今月
       const now = new Date();
@@ -60,20 +80,27 @@ export function AssetForm({ asset, onClose, onSuccess }: AssetFormProps) {
       const [year, month] = acquisitionDate.split('-').map(Number);
       const date = new Date(year, month - 1, 1);
 
+      // 基本データ
+      const assetData: any = {
+        name: name.trim(),
+        type,
+        acquisitionDate: date,
+        memo: memo.trim() || undefined,
+      };
+
+      // 保険固有のデータを追加
+      if (type === 'insurance') {
+        assetData.monthlyPremium = monthlyPremium ? parseFloat(monthlyPremium) : undefined;
+        assetData.paymentEndAge = paymentEndAge ? parseInt(paymentEndAge, 10) : undefined;
+        assetData.coverageAmount = coverageAmount ? parseFloat(coverageAmount) : undefined;
+        assetData.coverageType = coverageType.trim() || undefined;
+        assetData.linkedMemberId = linkedMemberId || undefined;
+      }
+
       if (isEdit && asset) {
-        await updateAsset(asset.id, {
-          name: name.trim(),
-          type,
-          acquisitionDate: date,
-          memo: memo.trim() || undefined,
-        });
+        await updateAsset(asset.id, assetData);
       } else {
-        await createAsset({
-          name: name.trim(),
-          type,
-          acquisitionDate: date,
-          memo: memo.trim() || undefined,
-        });
+        await createAsset(assetData);
       }
 
       onSuccess();
@@ -161,6 +188,103 @@ export function AssetForm({ asset, onClose, onSuccess }: AssetFormProps) {
               placeholder="メモを入力"
             />
           </div>
+
+          {/* 保険固有のフィールド */}
+          {type === 'insurance' && (
+            <div className="border-t border-gray-200 pt-4 space-y-4">
+              <h3 className="text-sm font-semibold text-gray-900">保険情報</h3>
+
+              <div>
+                <label htmlFor="coverageType" className="block text-sm font-medium text-gray-700 mb-1">
+                  保険の種類
+                </label>
+                <input
+                  type="text"
+                  id="coverageType"
+                  value={coverageType}
+                  onChange={(e) => setCoverageType(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 死亡保険、医療保険、がん保険"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="monthlyPremium" className="block text-sm font-medium text-gray-700 mb-1">
+                  月額保険料（円）
+                </label>
+                <input
+                  type="number"
+                  id="monthlyPremium"
+                  value={monthlyPremium}
+                  onChange={(e) => setMonthlyPremium(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 3700"
+                  min="0"
+                  step="100"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="paymentEndAge" className="block text-sm font-medium text-gray-700 mb-1">
+                  支払い終了年齢（歳）
+                </label>
+                <input
+                  type="number"
+                  id="paymentEndAge"
+                  value={paymentEndAge}
+                  onChange={(e) => setPaymentEndAge(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 60"
+                  min="0"
+                  max="120"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  何歳まで保険料を支払うか
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="coverageAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                  保険金額（円）
+                </label>
+                <input
+                  type="number"
+                  id="coverageAmount"
+                  value={coverageAmount}
+                  onChange={(e) => setCoverageAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="例: 10000000（1000万円）"
+                  min="0"
+                  step="100000"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  死亡時や満期時に受け取れる金額
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="linkedMemberId" className="block text-sm font-medium text-gray-700 mb-1">
+                  加入者
+                </label>
+                <select
+                  id="linkedMemberId"
+                  value={linkedMemberId}
+                  onChange={(e) => setLinkedMemberId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">選択してください</option>
+                  {householdMembers.map((member) => (
+                    <option key={member.id} value={member.id}>
+                      {member.name}（{member.relation}）
+                    </option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-500 mt-1">
+                  保険に加入している家族メンバー
+                </p>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4">
             <button

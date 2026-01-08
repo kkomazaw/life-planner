@@ -14,6 +14,7 @@ const categoryLabels: Record<LifeEventCategory, string> = {
   housing: '住宅',
   vehicle: '車両',
   retirement: '退職',
+  income: '継続収入',
   other: 'その他',
 };
 
@@ -21,8 +22,11 @@ export function LifeEventForm({ lifeEvent, onClose, onSuccess }: LifeEventFormPr
   const { createLifeEvent, updateLifeEvent } = useLifeEvents();
   const [name, setName] = useState('');
   const [date, setDate] = useState('');
+  const [eventType, setEventType] = useState<'oneTime' | 'recurring'>('oneTime');
   const [category, setCategory] = useState<LifeEventCategory>('other');
-  const [estimatedCost, setEstimatedCost] = useState('');
+  const [cost, setCost] = useState('');
+  const [monthlyAmount, setMonthlyAmount] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [memo, setMemo] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -33,8 +37,18 @@ export function LifeEventForm({ lifeEvent, onClose, onSuccess }: LifeEventFormPr
     if (lifeEvent) {
       setName(lifeEvent.name);
       setDate(formatYearMonth(lifeEvent.date));
+      setEventType(lifeEvent.type || 'oneTime');
       setCategory(lifeEvent.category);
-      setEstimatedCost(lifeEvent.estimatedCost.toString());
+
+      if (lifeEvent.type === 'recurring') {
+        setMonthlyAmount((lifeEvent.monthlyAmount || 0).toString());
+        setEndDate(lifeEvent.endDate ? formatYearMonth(lifeEvent.endDate) : '');
+      } else {
+        // 後方互換性: costまたはestimatedCostから値を取得
+        const costValue = lifeEvent.cost !== undefined ? lifeEvent.cost : (lifeEvent as any).estimatedCost || 0;
+        setCost(costValue.toString());
+      }
+
       setMemo(lifeEvent.memo || '');
     } else {
       const now = new Date();
@@ -52,14 +66,23 @@ export function LifeEventForm({ lifeEvent, onClose, onSuccess }: LifeEventFormPr
     }
 
     if (!date) {
-      setError('発生時期を入力してください');
+      setError('開始時期を入力してください');
       return;
     }
 
-    const cost = parseFloat(estimatedCost);
-    if (isNaN(cost) || cost < 0) {
-      setError('正しい予想費用を入力してください');
-      return;
+    // イベントタイプ別のバリデーション
+    if (eventType === 'oneTime') {
+      const costValue = parseFloat(cost);
+      if (isNaN(costValue) || costValue < 0) {
+        setError('正しい予想費用を入力してください');
+        return;
+      }
+    } else {
+      const amount = parseFloat(monthlyAmount);
+      if (isNaN(amount) || amount === 0) {
+        setError('正しい月額金額を入力してください');
+        return;
+      }
     }
 
     setIsSubmitting(true);
@@ -68,22 +91,56 @@ export function LifeEventForm({ lifeEvent, onClose, onSuccess }: LifeEventFormPr
       const [year, month] = date.split('-').map(Number);
       const eventDate = new Date(year, month - 1, 1);
 
-      if (isEdit && lifeEvent) {
-        await updateLifeEvent(lifeEvent.id, {
-          name: name.trim(),
-          date: eventDate,
-          category,
-          estimatedCost: cost,
-          memo: memo.trim() || undefined,
-        });
+      if (eventType === 'oneTime') {
+        const costValue = parseFloat(cost);
+
+        if (isEdit && lifeEvent) {
+          await updateLifeEvent(lifeEvent.id, {
+            name: name.trim(),
+            date: eventDate,
+            type: 'oneTime',
+            category,
+            cost: costValue,
+            memo: memo.trim() || undefined,
+          });
+        } else {
+          await createLifeEvent({
+            name: name.trim(),
+            date: eventDate,
+            category,
+            cost: costValue,
+            memo: memo.trim() || undefined,
+          });
+        }
       } else {
-        await createLifeEvent({
-          name: name.trim(),
-          date: eventDate,
-          category,
-          estimatedCost: cost,
-          memo: memo.trim() || undefined,
-        });
+        // 継続イベント
+        const amount = parseFloat(monthlyAmount);
+        const endEventDate = endDate ? (() => {
+          const [endYear, endMonth] = endDate.split('-').map(Number);
+          return new Date(endYear, endMonth - 1, 1);
+        })() : undefined;
+
+        if (isEdit && lifeEvent) {
+          await updateLifeEvent(lifeEvent.id, {
+            name: name.trim(),
+            date: eventDate,
+            type: 'recurring',
+            category,
+            monthlyAmount: amount,
+            endDate: endEventDate,
+            memo: memo.trim() || undefined,
+          });
+        } else {
+          await createLifeEvent({
+            name: name.trim(),
+            date: eventDate,
+            type: 'recurring',
+            category,
+            monthlyAmount: amount,
+            endDate: endEventDate,
+            memo: memo.trim() || undefined,
+          });
+        }
       }
 
       onSuccess();
@@ -159,21 +216,81 @@ export function LifeEventForm({ lifeEvent, onClose, onSuccess }: LifeEventFormPr
           </div>
 
           <div>
-            <label htmlFor="estimatedCost" className="block text-sm font-medium text-gray-700 mb-1">
-              予想費用 (円) <span className="text-red-500">*</span>
+            <label htmlFor="eventType" className="block text-sm font-medium text-gray-700 mb-1">
+              イベントタイプ <span className="text-red-500">*</span>
             </label>
-            <input
-              type="number"
-              id="estimatedCost"
-              value={estimatedCost}
-              onChange={(e) => setEstimatedCost(e.target.value)}
+            <select
+              id="eventType"
+              value={eventType}
+              onChange={(e) => setEventType(e.target.value as 'oneTime' | 'recurring')}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="1000000"
-              min="0"
-              step="1000"
               required
-            />
+            >
+              <option value="oneTime">一時イベント（1回のみ）</option>
+              <option value="recurring">継続イベント（毎月）</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              {eventType === 'oneTime'
+                ? '結婚、車購入など1回のみ発生する費用'
+                : '年金、資産取り崩しなど毎月発生する収入/支出'}
+            </p>
           </div>
+
+          {eventType === 'oneTime' ? (
+            <div>
+              <label htmlFor="cost" className="block text-sm font-medium text-gray-700 mb-1">
+                予想費用 (円) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                id="cost"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="1000000"
+                min="0"
+                step="1000"
+                required
+              />
+            </div>
+          ) : (
+            <>
+              <div>
+                <label htmlFor="monthlyAmount" className="block text-sm font-medium text-gray-700 mb-1">
+                  月額金額 (円) <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="number"
+                  id="monthlyAmount"
+                  value={monthlyAmount}
+                  onChange={(e) => setMonthlyAmount(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="200000"
+                  step="1000"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  収入の場合はマイナス値で入力してください（例: 年金 -200000）
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
+                  終了時期（オプション）
+                </label>
+                <input
+                  type="month"
+                  id="endDate"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  未指定の場合はシミュレーション期間終了まで継続
+                </p>
+              </div>
+            </>
+          )}
 
           <div>
             <label htmlFor="memo" className="block text-sm font-medium text-gray-700 mb-1">

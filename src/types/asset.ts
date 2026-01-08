@@ -1,4 +1,4 @@
-export type AssetType = 'cash' | 'investment' | 'property' | 'other';
+export type AssetType = 'cash' | 'investment' | 'property' | 'insurance' | 'other';
 
 export interface Asset {
   id: string;
@@ -6,6 +6,12 @@ export interface Asset {
   type: AssetType;
   acquisitionDate: Date;
   memo?: string;
+  // 保険固有のフィールド
+  monthlyPremium?: number; // 月額保険料
+  paymentEndAge?: number; // 支払い終了年齢
+  coverageAmount?: number; // 保険金額
+  coverageType?: string; // 保険の種類（死亡保険、医療保険など）
+  linkedMemberId?: string; // 加入者の家族メンバーID
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +35,7 @@ export interface AssetSummary {
     cash: number;
     investment: number;
     property: number;
+    insurance: number;
     other: number;
   };
 }

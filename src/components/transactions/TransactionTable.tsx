@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
+import { useHousehold } from '@/hooks/useHousehold';
 import { formatCurrency } from '@/lib/utils';
 
 export function TransactionTable() {
@@ -15,6 +16,7 @@ export function TransactionTable() {
     updateExpense,
     deleteExpense,
   } = useTransactions();
+  const { members: householdMembers } = useHousehold();
 
   const [activeTab, setActiveTab] = useState<'income' | 'expense'>('income');
   const [editingCell, setEditingCell] = useState<{ id: string; field: string } | null>(null);
@@ -25,6 +27,7 @@ export function TransactionTable() {
     categoryId: '',
     amount: '',
     memo: '',
+    linkedMemberId: '',
   });
 
   // 月ごとにグループ化してソート
@@ -61,6 +64,8 @@ export function TransactionTable() {
           }
         } else if (field === 'memo') {
           await updateIncome(id, { memo: editValue });
+        } else if (field === 'linkedMemberId') {
+          await updateIncome(id, { linkedMemberId: editValue || undefined });
         }
       } else {
         if (field === 'date') {
@@ -100,6 +105,7 @@ export function TransactionTable() {
           categoryId: newTransaction.categoryId,
           amount,
           memo: newTransaction.memo,
+          linkedMemberId: newTransaction.linkedMemberId || undefined,
         });
       } else {
         await createExpense({
@@ -115,6 +121,7 @@ export function TransactionTable() {
         categoryId: '',
         amount: '',
         memo: '',
+        linkedMemberId: '',
       });
       setIsAddingNew(false);
     } catch (error) {
@@ -180,6 +187,11 @@ export function TransactionTable() {
               <th className="px-4 py-3 text-right text-xs font-medium text-slate-600 uppercase tracking-wider">
                 金額
               </th>
+              {activeTab === 'income' && (
+                <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
+                  担当者
+                </th>
+              )}
               <th className="px-4 py-3 text-left text-xs font-medium text-slate-600 uppercase tracking-wider">
                 メモ
               </th>
@@ -192,6 +204,9 @@ export function TransactionTable() {
             {transactions.map((transaction) => {
               const category = categories.find((c) => c.id === transaction.categoryId);
               const dateStr = transaction.date.toISOString().slice(0, 7);
+              const linkedMember = activeTab === 'income' && 'linkedMemberId' in transaction
+                ? householdMembers.find((m) => m.id === transaction.linkedMemberId)
+                : undefined;
 
               return (
                 <tr key={transaction.id} className="hover:bg-slate-50 transition-colors">
@@ -262,6 +277,33 @@ export function TransactionTable() {
                       </div>
                     )}
                   </td>
+                  {activeTab === 'income' && (
+                    <td className="px-4 py-3">
+                      {editingCell?.id === transaction.id && editingCell?.field === 'linkedMemberId' ? (
+                        <select
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          onBlur={finishEditing}
+                          autoFocus
+                          className="input-modern py-1 text-sm"
+                        >
+                          <option value="">なし</option>
+                          {householdMembers.map((member) => (
+                            <option key={member.id} value={member.id}>
+                              {member.name}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div
+                          onClick={() => startEditing(transaction.id, 'linkedMemberId', ('linkedMemberId' in transaction ? transaction.linkedMemberId : '') || '')}
+                          className="cursor-pointer text-sm text-slate-600 hover:text-blue-600 py-1"
+                        >
+                          {linkedMember?.name || '-'}
+                        </div>
+                      )}
+                    </td>
+                  )}
                   <td className="px-4 py-3">
                     {editingCell?.id === transaction.id && editingCell?.field === 'memo' ? (
                       <input
@@ -330,6 +372,22 @@ export function TransactionTable() {
                     className="input-modern py-1 text-sm text-right"
                   />
                 </td>
+                {activeTab === 'income' && (
+                  <td className="px-4 py-3">
+                    <select
+                      value={newTransaction.linkedMemberId}
+                      onChange={(e) => setNewTransaction({ ...newTransaction, linkedMemberId: e.target.value })}
+                      className="input-modern py-1 text-sm"
+                    >
+                      <option value="">なし</option>
+                      {householdMembers.map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                )}
                 <td className="px-4 py-3">
                   <input
                     type="text"
@@ -355,6 +413,7 @@ export function TransactionTable() {
                         categoryId: '',
                         amount: '',
                         memo: '',
+                        linkedMemberId: '',
                       });
                     }}
                     className="text-slate-400 hover:text-slate-600 text-sm"
@@ -365,7 +424,7 @@ export function TransactionTable() {
               </tr>
             ) : (
               <tr className="bg-slate-50">
-                <td colSpan={5} className="px-4 py-3">
+                <td colSpan={activeTab === 'income' ? 6 : 5} className="px-4 py-3">
                   <button
                     onClick={() => setIsAddingNew(true)}
                     className={`text-sm font-medium ${activeTab === 'income' ? 'text-emerald-600 hover:text-emerald-700' : 'text-rose-600 hover:text-rose-700'}`}

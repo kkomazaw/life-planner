@@ -22,14 +22,26 @@ export function useLifeEvents() {
   const createLifeEvent = async (data: {
     name: string;
     date: Date;
+    type?: 'oneTime' | 'recurring';
     category: LifeEventCategory;
-    estimatedCost: number;
+    cost?: number;
+    monthlyAmount?: number;
+    endDate?: Date;
     memo?: string;
   }) => {
     const now = new Date();
+    const eventType = data.type || 'oneTime';
+
     const lifeEvent: LifeEvent = {
       id: uuidv4(),
-      ...data,
+      name: data.name,
+      date: data.date,
+      type: eventType,
+      category: data.category,
+      ...(eventType === 'oneTime' ? { cost: data.cost || 0 } : {}),
+      ...(eventType === 'recurring' ? { monthlyAmount: data.monthlyAmount || 0 } : {}),
+      ...(data.endDate ? { endDate: data.endDate } : {}),
+      memo: data.memo,
       createdAt: now,
       updatedAt: now,
     };

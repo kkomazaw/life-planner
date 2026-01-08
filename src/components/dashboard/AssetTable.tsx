@@ -7,6 +7,7 @@ const assetTypeOptions: { value: AssetType; label: string }[] = [
   { value: 'cash', label: '現金・預金' },
   { value: 'investment', label: '投資' },
   { value: 'property', label: '不動産' },
+  { value: 'insurance', label: '保険' },
   { value: 'other', label: 'その他' },
 ];
 
@@ -28,6 +29,15 @@ export function AssetTable() {
       .filter((h) => h.assetId === assetId)
       .sort((a, b) => b.date.getTime() - a.date.getTime());
     return history[0] || null;
+  };
+
+  // 資産の評価額を取得（保険の場合は保険金額を使用）
+  const getAssetValue = (asset: Asset): number => {
+    if (asset.type === 'insurance' && asset.coverageAmount) {
+      return asset.coverageAmount;
+    }
+    const history = getLatestHistory(asset.id);
+    return history?.value || 0;
   };
 
   // セルの編集開始
@@ -229,7 +239,11 @@ export function AssetTable() {
                     )}
                   </td>
                   <td className="px-4 py-3 text-right">
-                    {latestHistory ? (
+                    {asset.type === 'insurance' && asset.coverageAmount ? (
+                      <div className="text-sm font-semibold text-slate-900 py-1">
+                        {formatCurrency(asset.coverageAmount)}
+                      </div>
+                    ) : latestHistory ? (
                       editingCell?.id === latestHistory.id && editingCell?.field === 'value' ? (
                         <input
                           type="text"
@@ -350,10 +364,7 @@ export function AssetTable() {
           <span className="text-sm font-semibold text-slate-700">総資産額</span>
           <span className="text-lg font-bold text-slate-900">
             {formatCurrency(
-              assets.reduce((total, asset) => {
-                const history = getLatestHistory(asset.id);
-                return total + (history?.value || 0);
-              }, 0)
+              assets.reduce((total, asset) => total + getAssetValue(asset), 0)
             )}
           </span>
         </div>

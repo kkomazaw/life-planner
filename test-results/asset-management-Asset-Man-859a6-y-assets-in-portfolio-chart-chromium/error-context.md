@@ -1,0 +1,66 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e6]:
+      - heading "Life Planner" [level=1] [ref=e7]
+      - paragraph [ref=e8]: 資産管理システム
+    - navigation [ref=e9]:
+      - generic [ref=e10]:
+        - link "ダッシュボード" [ref=e11] [cursor=pointer]:
+          - /url: /
+        - link "資産管理" [ref=e12] [cursor=pointer]:
+          - /url: /assets
+        - link "収支管理" [ref=e13] [cursor=pointer]:
+          - /url: /transactions
+        - link "ライフイベント" [ref=e14] [cursor=pointer]:
+          - /url: /life-events
+        - link "シミュレーション" [ref=e15] [cursor=pointer]:
+          - /url: /simulation
+        - link "レポート" [ref=e16] [cursor=pointer]:
+          - /url: /reports
+        - link "設定" [ref=e17] [cursor=pointer]:
+          - /url: /settings
+    - generic [ref=e18]:
+      - paragraph [ref=e19]: © 2026 Life Planner
+      - paragraph [ref=e20]: v1.0.0
+  - main [ref=e21]:
+    - generic [ref=e23]:
+      - heading "ダッシュボード" [level=1] [ref=e24]
+      - generic [ref=e25]:
+        - generic [ref=e27]:
+          - heading "資産ポートフォリオ管理" [level=1] [ref=e28]
+          - paragraph [ref=e29]: 資産をスプレッド形式で編集・管理できます
+        - generic [ref=e31]:
+          - table [ref=e33]:
+            - rowgroup [ref=e34]:
+              - row "資産名 種別 評価日 評価額 操作" [ref=e35]:
+                - columnheader "資産名" [ref=e36]
+                - columnheader "種別" [ref=e37]
+                - columnheader "評価日" [ref=e38]
+                - columnheader "評価額" [ref=e39]
+                - columnheader "操作" [ref=e40]
+            - rowgroup [ref=e41]:
+              - row "+ 資産を追加" [ref=e42]:
+                - cell "+ 資産を追加" [ref=e43]:
+                  - button "+ 資産を追加" [ref=e44]
+          - generic [ref=e46]:
+            - generic [ref=e47]: 総資産額
+            - generic [ref=e48]: ￥0
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - paragraph [ref=e51]: データがありません
+            - paragraph [ref=e52]: 資産を追加すると、ここに推移グラフが表示されます
+          - generic [ref=e53]:
+            - paragraph [ref=e54]: データがありません
+            - paragraph [ref=e55]: 資産を追加すると、ここに構成グラフが表示されます
+        - generic [ref=e56]:
+          - heading "使い方" [level=3] [ref=e57]
+          - list [ref=e58]:
+            - listitem [ref=e59]: • テーブルのセルをクリックすると、直接編集できます
+            - listitem [ref=e60]: • 評価日をクリックして日付を変更できます
+            - listitem [ref=e61]: • 「+ 資産を追加」ボタンから新しい資産を追加できます
+            - listitem [ref=e62]: • 評価日フィルターでグラフに表示するデータを切り替えられます
+            - listitem [ref=e63]: • 資産タイプごとの推移と構成比を確認できます
+```

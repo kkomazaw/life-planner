@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useAssets } from '@/hooks/useAssets';
+import { useHousehold } from '@/hooks/useHousehold';
 import { formatCurrency, formatYearMonthJa } from '@/lib/utils';
 import type { Asset, AssetType } from '@/types/asset';
 
@@ -7,6 +8,7 @@ const assetTypeLabels: Record<AssetType, string> = {
   cash: '現金・預金',
   investment: '投資',
   property: '不動産',
+  insurance: '保険',
   other: 'その他',
 };
 
@@ -14,6 +16,7 @@ const assetTypeColors: Record<AssetType, string> = {
   cash: 'bg-blue-100 text-blue-800',
   investment: 'bg-green-100 text-green-800',
   property: 'bg-purple-100 text-purple-800',
+  insurance: 'bg-orange-100 text-orange-800',
   other: 'bg-gray-100 text-gray-800',
 };
 
@@ -24,11 +27,20 @@ interface AssetListProps {
 
 export function AssetList({ onEdit, onAddHistory }: AssetListProps) {
   const { assets, assetHistory, deleteAsset } = useAssets();
+  const { members: householdMembers } = useHousehold();
   const [filter, setFilter] = useState<AssetType | 'all'>('all');
 
   const filteredAssets = assets.filter((asset) => filter === 'all' || asset.type === filter);
 
   const getLatestValue = (assetId: string) => {
+    const asset = assets.find((a) => a.id === assetId);
+
+    // 保険の場合は保険金額（coverageAmount）を資産評価額として使用
+    if (asset?.type === 'insurance' && asset.coverageAmount) {
+      return asset.coverageAmount;
+    }
+
+    // その他の資産は履歴から最新値を取得
     const history = assetHistory
       .filter((h) => h.assetId === assetId)
       .sort((a, b) => b.date.getTime() - a.date.getTime());
@@ -111,6 +123,39 @@ export function AssetList({ onEdit, onAddHistory }: AssetListProps) {
                     <div className="text-sm text-gray-600 space-y-1">
                       <p>取得日: {formatYearMonthJa(asset.acquisitionDate)}</p>
                       {asset.memo && <p className="text-gray-500">メモ: {asset.memo}</p>}
+
+                      {/* 保険固有の情報 */}
+                      {asset.type === 'insurance' && (
+                        <div className="mt-2 pt-2 border-t border-gray-200 space-y-1">
+                          {asset.coverageType && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">保険種別:</span> {asset.coverageType}
+                            </p>
+                          )}
+                          {asset.monthlyPremium && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">月額保険料:</span> {formatCurrency(asset.monthlyPremium)}
+                            </p>
+                          )}
+                          {asset.paymentEndAge && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">支払い終了年齢:</span> {asset.paymentEndAge}歳
+                            </p>
+                          )}
+                          {asset.coverageAmount && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">保険金額:</span> {formatCurrency(asset.coverageAmount)}
+                            </p>
+                          )}
+                          {asset.linkedMemberId && (
+                            <p className="text-gray-700">
+                              <span className="font-medium">加入者:</span>{' '}
+                              {householdMembers.find((m) => m.id === asset.linkedMemberId)?.name || '不明'}
+                            </p>
+                          )}
+                        </div>
+                      )}
+
                       <p className="text-gray-400">履歴: {historyCount}件</p>
                     </div>
                   </div>
